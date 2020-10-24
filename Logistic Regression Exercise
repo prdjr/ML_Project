@@ -1,0 +1,293 @@
+# # Create a logistic regression to predict absenteeism
+
+# Import the relevant libraries
+
+# In[4]:
+
+
+import pandas as pd
+import numpy as np
+
+
+# Load the preprocessed data
+
+# In[5]:
+
+
+data_preprocessed = pd.read_csv('Absenteeism_preprocessed.csv')
+
+
+# In[6]:
+
+
+data_preprocessed.head(10)
+
+
+# # Create the Targets for Logistic Regression
+
+# "Logistic Regressions is a type of ML classification that groups people into classes to understand behavior and predict similar future outcomes"
+
+# What are the classes? - A. Execessively Absent B. Modertately Absent
+
+# To group people into classes, find the median number of 'Absenteeism in Hours' ((<= m = B assigned as 0, >= m = A assigned as 1)) (targets)
+
+# In[7]:
+
+
+data_preprocessed['Absenteeism Time in Hours'].median()
+
+
+# np.where = (condition, value if True, value if False)
+# use 'parameterization' to keep code clean. as values can change, always find the median, not a specific number
+
+# In[8]:
+
+
+targets = np.where(data_preprocessed['Absenteeism Time in Hours'] > 
+                   data_preprocessed['Absenteeism Time in Hours'].median(), 1, 0)
+
+
+# In[9]:
+
+
+targets
+
+
+# In[10]:
+
+
+data_preprocessed['Excessive Absenteeism'] = targets
+
+
+# In[11]:
+
+
+data_preprocessed.head()
+
+
+# # Comments on Targets
+
+# by using parameterization through the median function, we have essentially balanced the dataframe in a 50/50 split of 0, 1
+
+# In[12]:
+
+
+targets.sum()/targets.shape[0]
+
+
+# 46% of targets are 1s, 54% are 0s
+
+# logistic regression is best applied when a dataset is exists in a 60/40 split
+
+# # Checkpoint 1.0
+
+# In[13]:
+
+
+data_with_targets = data_preprocessed.drop(['Absenteeism Time in Hours'], axis = 1)
+
+
+# In[14]:
+
+
+data_with_targets is data_preprocessed
+
+
+# In[15]:
+
+
+data_with_targets.head()
+
+
+# # Select the inputs for the regression
+
+# In[16]:
+
+
+data_with_targets.shape
+
+
+# 'dataframe.iloc(row indices,column indices) = selects (slices of) data by position when given rows and columns wanted
+# 
+
+# In[17]:
+
+
+data_with_targets.iloc[:,:14]
+
+
+# pulls all of the data except for the 'Excessive Absenteeism column' as this what we want our inputs into the model to be
+
+# data_with_targets.iloc[:,:-1] = does the same thing as the above, but it better as it will always drop the last -x number of columns rather than counting out all of the indices
+
+# In[18]:
+
+
+unscaled_inputs = data_with_targets.iloc[:,:-1]
+
+
+# # Standardizing & Scaling the data
+
+# 'absenteeism_scaler' will be used to subtract the mean and divide by the stand. dev. variablewise
+
+# In[20]:
+
+
+from sklearn.preprocessing import StandardScaler
+absenteeism_scaler = StandardScaler()
+
+
+# will be used to calc and store the mean and standard deviation. This is called 'preparing the scaling mechanism'
+
+# In[23]:
+
+
+absenteeism_scaler.fit(unscaled_inputs)
+
+
+# .tranform() = does the actual scaling of the inputs
+
+# In[25]:
+
+
+scaled_inputs = absenteeism_scaler.transform(unscaled_inputs)
+
+
+# Most common way to transform new data:
+
+# 'new_data_raw = pd.read_csv('new_data_csv')
+
+# new_data_scaled = absenteeism_scaler.transform(new_data_raw)
+
+# In[26]:
+
+
+scaled_inputs
+
+
+# In[28]:
+
+
+scaled_inputs.shape
+
+
+# # Splitting the dataset: Train vs Test
+
+# sklearn.model_selection.train_test_split(inputs, targets, train_size, shuffle, random_state) = splits the arrays into random train and test subsets based on 0-1 size wanted and randomizes the data for better training
+
+# In[46]:
+
+
+from sklearn.model_selection import train_test_split
+
+
+# # Split
+
+# In[47]:
+
+
+train_test_split(scaled_inputs, targets)
+
+
+# In[48]:
+
+
+x_train, x_test, y_train, y_test = train_test_split(scaled_inputs, targets, train_size = 0.8, random_state = 20)
+
+
+# See what split did to the data tables
+
+# In[49]:
+
+
+print(x_train.shape, y_train.shape)
+
+
+# In[50]:
+
+
+print(x_test.shape, y_test.shape)
+
+
+# # Logistic Regression with sklearn
+
+# In[53]:
+
+
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
+
+
+# # Training the model
+
+# In[55]:
+
+
+reg = LogisticRegression()
+
+
+# sklearn.linear_model.LogisticRegression.fit(x,y) = fits the model to the training data
+
+# In[56]:
+
+
+reg.fit(x_train,y_train)
+
+
+# .score(inputs,targets) = returns the mean accuracy on the dataset 
+
+# In[57]:
+
+
+reg.score(x_train,y_train)
+
+
+# based on the data, the model can classify ~80% of the observations correctly
+
+# # Manually check the accuracy
+
+# accuracy = x% of the model ouputs match the targets
+
+# .predict(inputs) = predicts class labels (outputs) given the inputs
+
+# In[59]:
+
+
+model_outputs = reg.predict(x_train)
+model_outputs
+
+
+# compares the x and y varaibles
+# True = match
+
+# In[61]:
+
+
+model_outputs == y_train
+
+
+# turns all 'True' into 1
+
+# In[62]:
+
+
+np.sum(model_outputs==y_train)
+
+
+# finds all observations
+
+# In[63]:
+
+
+model_outputs.shape[0]
+
+
+# accuracy = correct predictions (np.sum(model_outputs==y_train) / # of observations (model_outputs.shape[0])
+
+# In[65]:
+
+
+np.sum(model_outputs==y_train) / model_outputs.shape[0]
+
+
+# same model score as the sklearn algo
